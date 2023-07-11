@@ -6,6 +6,7 @@ import click
 import pandas as pd
 from helper_functions import get_data, split_data
 from random_forrest_regressor import RandomForest
+
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir)
 
@@ -22,19 +23,22 @@ def cli():
     help="Path to the input data if you want to train" " the model on own data",
     default=None,
 )
-@click.option("--path", "-p", help="Path to the save the model to", default=None)
+@click.option("--path", "-p", help="Path to the save the model to",
+              default=None)
 def train(data, path):
     """Train the model."""
     dataset = get_data()
-
+    dataset.dropna(inplace=True)
+    dataset.drop(["VendorID", "store_and_fwd_flag", "payment_type", "RatecodeID"], axis=1, inplace=True)
     X = dataset.drop("total_amount", axis=1)
-    X.drop(["tpep_pickup_datetime","tpep_dropoff_datetime"], axis=1, inplace=True)
+    X.drop(["tpep_pickup_datetime", "tpep_dropoff_datetime"], axis=1,
+           inplace=True)
     y = dataset["total_amount"]
     X_train, X_test, y_train, y_test = split_data(X, y, test_size=0.2)
     model = RandomForest()
 
-    X_train_preprocessed = model.preprocessor.fit_transform(X_train)
-    X_test_preprocessed = model.preprocessor.transform(X_test)
+    # X_train_preprocessed = model.preprocessor.fit_transform(X_train)
+    # X_test_preprocessed = model.preprocessor.transform(X_test)
 
     # Train the model
     model.fit(X_train, y_train)
@@ -43,6 +47,7 @@ def train(data, path):
         # Save the model
         model.save(path)
         click.echo(f"Saved the model to {path}")
+
 
 #
 # @cli.command()
