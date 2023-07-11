@@ -1,0 +1,94 @@
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+import skops.io as sio
+
+from sklearn.metrics import precision_recall_fscore_support, mean_squared_error
+from sklearn.preprocessing import Normalizer, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+import optuna
+# file_dir = os.path.dirname(__file__)
+# sys.path.append(file_dir)
+
+file_name = "yellow_tripdata_2021-01.parquet"
+
+
+def get_data(path: str = 'data/') -> pd.DataFrame:
+    """Load the data from a file."""
+    print(os.path.realpath(__file__))
+    file_path = os.path.join(path, file_name)
+    if os.path.exists(file_path):
+        df_taxi = pd.read_parquet(file_path)
+        return df_taxi
+    else:
+        url = (
+            f"https://d37ci6vzurychx.cloudfront.net/trip-data/{file_name}"
+        )
+
+        print("Loading data from URL...")
+        df_taxi = pd.read_parquet(url)
+        df_taxi.to_parquet(file_path, index=False)
+        print("Successfully saved the data!")
+        return df_taxi
+
+
+def split_data(X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> tuple:
+    return train_test_split(X, y, test_size=test_size)
+
+
+def optimize_hyperparameters(self, X_train, y_train, X_test, y_test):
+    """
+    Perform hyperparameter optimization with Optuna.
+    """
+
+    def objective(trial):
+        # Define the search space for hyperparameters
+        criterion = trial.suggest_categorical("criterion",
+                                              ["gini", "entropy"])
+        max_depth = trial.suggest_int("max_depth", 2, 10)
+        min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
+        min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 10)
+
+        # Create a decision tree classifier with the hyperparameters
+        # TODO: change parameters
+        dec_tree = RandomForestRegressor(
+            criterion=criterion,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+        )
+
+        # Train the classifier
+        dec_tree.fit(X_train, y_train)
+
+        # Make predictions on the test set
+        y_pred = dec_tree.predict(X_test)
+
+        # Calculate the accuracy
+        accuracy = mean_squared_error(y_test, y_pred)
+
+        return accuracy
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=100)
+
+    # Print the best hyperparameters and the corresponding accuracy
+    best_trial = study.best_trial
+    print("Best hyperparameters:", best_trial.params)
+    print("Best accuracy:", best_trial.value)
+    return best_trial.params, study
+
+
+def train_model_with_best_hyperparameters(
+        model, X_train, y_train, best_params
+):
+    """
+    Train a decision tree model with the best hyperparameters.
+    """
+    model = model(**best_params)
+    model.fit(X_train, y_train)
+    return model
