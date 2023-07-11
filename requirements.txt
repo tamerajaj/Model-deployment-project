@@ -1,0 +1,8 @@
+pandas
+scikit-learn
+pytest
+great_expectations
+skops
+optuna
+mlflow
+fastapi
