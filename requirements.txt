@@ -1,8 +1,13 @@
 pandas
 scikit-learn
 pytest
-great_expectations
 skops
 optuna
 mlflow
 fastapi
+pydantic
+uvicorn
+jupyter
+python-dotenv
+google-cloud-storage
+pre-commit
