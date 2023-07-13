@@ -11,14 +11,14 @@ And deploy the model with one of the methods you saw this week.
 The project is composed of 3 parts:
 
 - Train the model with a `random forest regressor` track it with MLFlow.
-- Deploy the model.
+- Deploy the model as an API.
 - Make a request to the model.
 
 Bonus tasks if you have the time:
 
 Bonus: Use the testing methods you saw this week to test your data and your model.
 
-Bonus: Use `gridsearch` ot `optuna` to find the best hyperparameters for your model.
+Bonus: Use `gridsearch` or `optuna` to find the best hyperparameters for your model.
 
 ## Dataset
 
