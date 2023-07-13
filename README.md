@@ -31,8 +31,7 @@ Yellow taxi dataset: https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.pa
 ## Answer these questions
 
 1. What is the RMSE of your model?
-2. Which deployment method did you use?
-3. What would you do differently if you had more time?
+2. What would you do differently if you had more time?
 
 
 ## How to submit your project
