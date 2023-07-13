@@ -8,8 +8,10 @@ import pandas as pd
 # import skops.io as sio
 from dotenv import load_dotenv
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import mean_squared_error  # , precision_recall_fscore_support
-from sklearn.model_selection import train_test_split
+
+# from sklearn.model_selection import train_test_split
 
 # from sklearn.pipeline import Pipeline
 # from sklearn.preprocessing import Normalizer, StandardScaler
@@ -34,11 +36,34 @@ def get_data() -> pd.DataFrame:
         print("Successfully saved the data!")
 
     df = pd.read_parquet(f"./data/{color}_tripdata_{year}-{month:02d}.parquet")
+    df = calculate_trip_duration_in_minutes(df)
+    categorical = ["PULocationID", "DOLocationID"]
+    df[categorical] = df[categorical].astype(str)
     return df
 
 
-def split_data(X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> tuple:
-    return train_test_split(X, y, test_size=test_size)
+def calculate_trip_duration_in_minutes(df):
+    df["trip_duration_minutes"] = (
+        df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]
+    ).dt.total_seconds() / 60
+    df = df[(df["trip_duration_minutes"] >= 1) & (df["trip_duration_minutes"] <= 60)]
+    return df
+
+
+def preprocess(df: pd.DataFrame, dv: DictVectorizer, fit_dv: bool = False):
+    df["PU_DO"] = df["PULocationID"] + "_" + df["DOLocationID"]
+    categorical = ["PU_DO"]
+    numerical = ["trip_distance"]
+    dicts = df[categorical + numerical].to_dict(orient="records")
+    if fit_dv:
+        X = dv.fit_transform(dicts)
+    else:
+        X = dv.transform(dicts)
+    return X, dv
+
+
+# def split_data(X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> tuple:
+#     return train_test_split(X, y, test_size=test_size)
 
 
 def optimize_hyperparameters(self, X_train, y_train, X_test, y_test):

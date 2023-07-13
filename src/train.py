@@ -4,6 +4,7 @@ import sys
 
 # import click
 import mlflow
+import optuna
 
 # import pandas as pd
 from dotenv import load_dotenv
@@ -11,40 +12,73 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import mean_squared_error  # precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
 
 from helper_functions import get_data, preprocess
+
+# from sklearn.pipeline import make_pipeline
+
 
 # from random_forrest_regressor import RandomForest
 
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir)
 
+# TODO: make logging work for all runs of optuna
+
 
 def train():
     """Train the model."""
     dataset = get_data()
-    df_processed = preprocess(dataset)
+    # df_processed = preprocess(dataset)
 
-    y = df_processed["trip_duration_minutes"]
-    X = df_processed.drop(columns=["trip_duration_minutes"])
+    y = dataset["trip_duration_minutes"].values
+    X = dataset.drop(columns=["trip_duration_minutes"])
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, random_state=42, test_size=0.2
     )
 
-    X_train = X_train.to_dict(orient="records")
-    X_test = X_test.to_dict(orient="records")
+    dv = DictVectorizer()
+    X_train, dv = preprocess(X_train, dv, fit_dv=True)
+    X_test, _ = preprocess(X_test, dv, fit_dv=False)
     features = ["PULocationID", "DOLocationID", "trip_distance"]
     target = "duration"
 
+    def objective(trial):
+        # Define the search space for hyperparameters
+        criterion = trial.suggest_categorical("criterion", ["squared_error"])
+        max_depth = trial.suggest_int("max_depth", 1, 20)
+        min_samples_split = trial.suggest_int("min_samples_split", 2, 10)
+        min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 4)
+        n_estimators = trial.suggest_int("n_estimators", 10, 50)
+        # Create a random forest regressor with the hyperparameters
+        rf_regressor = RandomForestRegressor(
+            criterion=criterion,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            n_estimators=n_estimators,
+            n_jobs=-1,
+        )
+
+        # Train the regressor
+        rf_regressor.fit(X_train, y_train)
+
+        # Make predictions on the test set
+        y_pred = rf_regressor.predict(X_test)
+
+        # Calculate the root mean squared error (RMSE)
+        rmse = mean_squared_error(y_test, y_pred, squared=False)
+
+        return rmse
+
+    # MLflow tracking
     with mlflow.start_run():
         load_dotenv()
         year = os.getenv("YEAR")
         month = int(os.getenv("MONTH"))
         color = os.getenv("COLOR")
         tags = {
-            "model": "linear regression pipeline",
-            "developer": "<your name>",
+            "model": "random forest regressor",
             "dataset": f"{color}-taxi",
             "year": year,
             "month": month,
@@ -52,18 +86,40 @@ def train():
             "target": target,
         }
         mlflow.set_tags(tags)
-        pipeline = make_pipeline(
-            DictVectorizer(),
-            RandomForestRegressor(verbose=2, n_jobs=-1, n_estimators=10),
-        )
-        print("Training the model...")
-        pipeline.fit(X_train, y_train)
 
-        y_pred = pipeline.predict(X_test)
+        # Perform hyperparameter optimization with Optuna
+        study = optuna.create_study(direction="minimize")
+        study.optimize(objective, n_trials=20)
+
+        # Get the best trial and parameters
+        best_trial = study.best_trial
+        best_params = best_trial.params
+
+        # Log the Optuna search results to MLflow
+        mlflow.log_params(best_params)
+        mlflow.log_metric("best_rmse", best_trial.value)
+
+        # Create a random forest regressor with the best hyperparameters
+        rf_regressor = RandomForestRegressor(
+            criterion=best_params["criterion"],
+            max_depth=best_params["max_depth"],
+            min_samples_split=best_params["min_samples_split"],
+            min_samples_leaf=best_params["min_samples_leaf"],
+            n_estimators=best_params["n_estimators"],
+            n_jobs=-1,
+        )
+
+        print("Training the model...")
+        rf_regressor.fit(X_train, y_train)
+
+        y_pred = rf_regressor.predict(X_test)
         rmse = mean_squared_error(y_test, y_pred, squared=False)
+
+        # Log the final metrics to MLflow
         mlflow.log_metric("rmse", rmse)
 
-        mlflow.sklearn.log_model(pipeline, "model")
+        # Log the model to MLflow
+        mlflow.sklearn.log_model(rf_regressor, "model")
 
 
 #
