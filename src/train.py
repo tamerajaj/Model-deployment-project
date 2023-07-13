@@ -1,52 +1,69 @@
-import json
+# import json
 import os
 import sys
 
-import click
-import pandas as pd
-from helper_functions import get_data, split_data
-from random_forrest_regressor import RandomForest
+# import click
+import mlflow
+
+# import pandas as pd
+from dotenv import load_dotenv
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.metrics import mean_squared_error  # precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+
+from helper_functions import get_data, preprocess
+
+# from random_forrest_regressor import RandomForest
 
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir)
 
 
-@click.group()
-def cli():
-    pass
-
-
-@cli.command()
-@click.option(
-    "--data",
-    "-d",
-    help="Path to the input data if you want to train" " the model on own data",
-    default=None,
-)
-@click.option("--path", "-p", help="Path to the save the model to",
-              default=None)
-def train(data, path):
+def train():
     """Train the model."""
     dataset = get_data()
-    dataset.dropna(inplace=True)
-    dataset.drop(["VendorID", "store_and_fwd_flag", "payment_type", "RatecodeID"], axis=1, inplace=True)
-    X = dataset.drop("total_amount", axis=1)
-    X.drop(["tpep_pickup_datetime", "tpep_dropoff_datetime"], axis=1,
-           inplace=True)
-    y = dataset["total_amount"]
-    X_train, X_test, y_train, y_test = split_data(X, y, test_size=0.2)
-    model = RandomForest()
+    df_processed = preprocess(dataset)
 
-    # X_train_preprocessed = model.preprocessor.fit_transform(X_train)
-    # X_test_preprocessed = model.preprocessor.transform(X_test)
+    y = df_processed["trip_duration_minutes"]
+    X = df_processed.drop(columns=["trip_duration_minutes"])
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=42, test_size=0.2
+    )
 
-    # Train the model
-    model.fit(X_train, y_train)
-    click.echo("Trained the model successfully")
-    if path is not None:
-        # Save the model
-        model.save(path)
-        click.echo(f"Saved the model to {path}")
+    X_train = X_train.to_dict(orient="records")
+    X_test = X_test.to_dict(orient="records")
+    features = ["PULocationID", "DOLocationID", "trip_distance"]
+    target = "duration"
+
+    with mlflow.start_run():
+        load_dotenv()
+        year = os.getenv("YEAR")
+        month = int(os.getenv("MONTH"))
+        color = os.getenv("COLOR")
+        tags = {
+            "model": "linear regression pipeline",
+            "developer": "<your name>",
+            "dataset": f"{color}-taxi",
+            "year": year,
+            "month": month,
+            "features": features,
+            "target": target,
+        }
+        mlflow.set_tags(tags)
+        pipeline = make_pipeline(
+            DictVectorizer(),
+            RandomForestRegressor(verbose=2, n_jobs=-1, n_estimators=10),
+        )
+        print("Training the model...")
+        pipeline.fit(X_train, y_train)
+
+        y_pred = pipeline.predict(X_test)
+        rmse = mean_squared_error(y_test, y_pred, squared=False)
+        mlflow.log_metric("rmse", rmse)
+
+        mlflow.sklearn.log_model(pipeline, "model")
 
 
 #
@@ -106,6 +123,5 @@ def train(data, path):
 #     performance = model.score(df["text"], df["label"])
 #     print(json.dumps(performance, indent=2))
 
-
 if __name__ == "__main__":
-    cli()
+    train()
