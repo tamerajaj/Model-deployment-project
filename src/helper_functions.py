@@ -1,39 +1,40 @@
 import os
 import sys
 
-import numpy as np
-import pandas as pd
-import skops.io as sio
-
-from sklearn.metrics import precision_recall_fscore_support, mean_squared_error
-from sklearn.preprocessing import Normalizer, StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import Pipeline
+# import numpy as np
 import optuna
-# file_dir = os.path.dirname(__file__)
-# sys.path.append(file_dir)
+import pandas as pd
 
-file_name = "yellow_tripdata_2021-01.parquet"
+# import skops.io as sio
+from dotenv import load_dotenv
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error  # , precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
+
+# from sklearn.pipeline import Pipeline
+# from sklearn.preprocessing import Normalizer, StandardScaler
+
+file_dir = os.path.dirname(__file__)
+sys.path.append(file_dir)
 
 
-def get_data(path: str = 'data/') -> pd.DataFrame:
+# TODO: add option to change year, month, and color.
+def get_data() -> pd.DataFrame:
     """Load the data from a file."""
-    print(os.path.realpath(__file__))
-    file_path = os.path.join(path, file_name)
-    if os.path.exists(file_path):
-        df_taxi = pd.read_parquet(file_path)
-        return df_taxi
-    else:
-        url = (
-            f"https://d37ci6vzurychx.cloudfront.net/trip-data/{file_name}"
-        )
-
+    load_dotenv()
+    year = os.getenv("YEAR")
+    month = int(os.getenv("MONTH"))
+    color = os.getenv("COLOR")
+    if not os.path.exists(f"./data/" f"{color}_tripdata_{year}-{month:02d}.parquet"):
         print("Loading data from URL...")
-        df_taxi = pd.read_parquet(url)
-        df_taxi.to_parquet(file_path, index=False)
+        os.system(
+            f"wget -P ./data https://d37ci6vzurychx.cloudfront.net/trip-data/"
+            f"{color}_tripdata_{year}-{month:02d}.parquet"
+        )
         print("Successfully saved the data!")
-        return df_taxi
+
+    df = pd.read_parquet(f"./data/{color}_tripdata_{year}-{month:02d}.parquet")
+    return df
 
 
 def split_data(X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> tuple:
@@ -47,8 +48,7 @@ def optimize_hyperparameters(self, X_train, y_train, X_test, y_test):
 
     def objective(trial):
         # Define the search space for hyperparameters
-        criterion = trial.suggest_categorical("criterion",
-                                              ["gini", "entropy"])
+        criterion = trial.suggest_categorical("criterion", ["gini", "entropy"])
         max_depth = trial.suggest_int("max_depth", 2, 10)
         min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
         min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 10)
@@ -83,9 +83,7 @@ def optimize_hyperparameters(self, X_train, y_train, X_test, y_test):
     return best_trial.params, study
 
 
-def train_model_with_best_hyperparameters(
-        model, X_train, y_train, best_params
-):
+def train_model_with_best_hyperparameters(model, X_train, y_train, best_params):
     """
     Train a decision tree model with the best hyperparameters.
     """
