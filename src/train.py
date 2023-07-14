@@ -1,24 +1,26 @@
-# import json
 import os
 import sys
+from datetime import datetime
 
-# import click
+# import joblib
 import mlflow
 import optuna
-
-# import pandas as pd
 from dotenv import load_dotenv
+from mlflow.tracking.client import MlflowClient
 from optuna.integration.mlflow import MLflowCallback
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
 
 from helper_functions import get_data, preprocess
 
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir)
 load_dotenv()
+
+
 # TODO: make logging work for all runs of optuna
 
 
@@ -33,9 +35,10 @@ def train():
         X, y, random_state=42, test_size=0.2
     )
 
-    dv = DictVectorizer()
-    X_train, dv = preprocess(X_train, dv, fit_dv=True)
-    X_test, _ = preprocess(X_test, dv, fit_dv=False)
+    # dv = DictVectorizer()
+    X_train = preprocess(X_train)  # , dv, fit_dv=True)
+    X_test = preprocess(X_test)  # , dv, fit_dv=False)
+    # joblib.dump(dv, "dict_vectorizer.pkl")
     features = ["PULocationID", "DOLocationID", "trip_distance"]
     target = "duration"
 
@@ -66,14 +69,17 @@ def train():
         min_samples_split = trial.suggest_int("min_samples_split", 2, 10)
         min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 4)
         n_estimators = trial.suggest_int("n_estimators", 10, 50)
-        # Create a random forest regressor with the hyperparameters
-        rf_regressor = RandomForestRegressor(
-            criterion=criterion,
-            max_depth=max_depth,
-            min_samples_split=min_samples_split,
-            min_samples_leaf=min_samples_leaf,
-            n_estimators=n_estimators,
-            # n_jobs=-1,
+
+        rf_regressor = make_pipeline(
+            DictVectorizer(),
+            RandomForestRegressor(
+                criterion=criterion,
+                max_depth=max_depth,
+                min_samples_split=min_samples_split,
+                min_samples_leaf=min_samples_leaf,
+                n_estimators=n_estimators,
+                n_jobs=-1,
+            ),
         )
 
         # Train the regressor
@@ -89,7 +95,7 @@ def train():
 
     # Perform hyperparameter optimization with Optuna
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=20, callbacks=[mlflc])
+    study.optimize(objective, n_trials=10, callbacks=[mlflc])
 
     # Get the best trial and parameters
     best_trial = study.best_trial
@@ -100,13 +106,16 @@ def train():
     mlflow.log_metric("best_rmse", best_trial.value)
 
     # Create a random forest regressor with the best hyperparameters
-    rf_regressor = RandomForestRegressor(
-        criterion=best_params["criterion"],
-        max_depth=best_params["max_depth"],
-        min_samples_split=best_params["min_samples_split"],
-        min_samples_leaf=best_params["min_samples_leaf"],
-        n_estimators=best_params["n_estimators"],
-        # n_jobs=-1,
+    rf_regressor = make_pipeline(
+        (DictVectorizer()),
+        RandomForestRegressor(
+            criterion=best_params["criterion"],
+            max_depth=best_params["max_depth"],
+            min_samples_split=best_params["min_samples_split"],
+            min_samples_leaf=best_params["min_samples_leaf"],
+            n_estimators=best_params["n_estimators"],
+            n_jobs=-1,
+        ),
     )
 
     print("Training the model...")
@@ -118,7 +127,41 @@ def train():
     mlflow.log_metric("rmse", rmse)
 
     mlflow.sklearn.log_model(rf_regressor, "random-forest-fare-model")
+    # mlflow.log_artifact("dict_vectorizer.pkl")
+    run_id = mlflow.active_run().info.run_id
+    print("Model run id")
+    print(run_id)
+    return run_id
+
+
+def register_model(RUN_ID):
+    model_uri = f"runs:/{RUN_ID}/model"
+
+    load_dotenv()
+    MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+    mlflow.register_model(model_uri=model_uri, name="random-forest-fare-model")
+    client = MlflowClient(tracking_uri=MLFLOW_TRACKING_URI)
+    model_name = "random-forest-fare-model"
+    latest_versions = client.get_latest_versions(name=model_name, stages=["None"])
+
+    for version in latest_versions:
+        print(f"version: {version.version}, stage: {version.current_stage}")
+    model_version = latest_versions[-1].version
+    new_stage = "Production"
+    client.transition_model_version_stage(
+        name=model_name,
+        version=model_version,
+        stage=new_stage,
+        archive_existing_versions=True,
+    )
+    date = datetime.today().date()
+    client.update_model_version(
+        name=model_name,
+        version=model_version,
+        description=f"The model version {model_version} was transitioned to {new_stage} on {date}",
+    )
 
 
 if __name__ == "__main__":
-    train()
+    run_id = train()
+    register_model(run_id)

@@ -8,7 +8,8 @@ import pandas as pd
 # import skops.io as sio
 from dotenv import load_dotenv
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.feature_extraction import DictVectorizer
+
+# from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import mean_squared_error  # , precision_recall_fscore_support
 
 # from sklearn.model_selection import train_test_split
@@ -50,16 +51,17 @@ def calculate_trip_duration_in_minutes(df):
     return df
 
 
-def preprocess(df: pd.DataFrame, dv: DictVectorizer, fit_dv: bool = False):
+def preprocess(df: pd.DataFrame):  # , dv: DictVectorizer, fit_dv: bool = False):
     df["PU_DO"] = df["PULocationID"] + "_" + df["DOLocationID"]
     categorical = ["PU_DO"]
     numerical = ["trip_distance"]
     dicts = df[categorical + numerical].to_dict(orient="records")
-    if fit_dv:
-        X = dv.fit_transform(dicts)
-    else:
-        X = dv.transform(dicts)
-    return X, dv
+    # if fit_dv:
+    #     X = dv.fit_transform(dicts)
+    # else:
+    #     X = dv.transform(dicts)
+    # return X, dv
+    return dicts
 
 
 # def split_data(X: pd.DataFrame, y: pd.Series, test_size: float = 0.2) -> tuple:
