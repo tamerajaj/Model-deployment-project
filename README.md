@@ -39,4 +39,24 @@ Yellow taxi dataset: https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.pa
 
 Upload your project on GitHub and send us the link. Answer the questions above in the README.md file.
 
+## Setup
+### Pipenv
+```bash
+pyenv local 3.10.9
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
 
+### Poetry
+```shell
+poetry config virtualenvs.in-project true
+poetry install
+```
+
+
+```shell
+source .venv/bin/activate
+poetry add $( cat requirements.txt ) 	
+```
