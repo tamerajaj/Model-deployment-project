@@ -11,3 +11,5 @@ jupyter
 python-dotenv
 google-cloud-storage
 pre-commit
+prefect==2.10.14
+uuid
