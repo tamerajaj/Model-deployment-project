@@ -13,6 +13,7 @@ def index():
 @app.post("/predict", response_model=TaxiRidePrediction)
 def predict_duration(data: TaxiRide):
     prediction = predict("random-forest-fare-model", data)
+    print("Prediction is: " + str(prediction))
     return TaxiRidePrediction(**data.dict(), predicted_duration=prediction)
 
 
