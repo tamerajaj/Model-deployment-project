@@ -12,29 +12,26 @@ def prepare_features(ride):
 
 def load_model(model_name):
     load_dotenv("../.env")
-    MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"  # os.getenv("MLFLOW_TRACKING_URI")
+    MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
     print(MLFLOW_TRACKING_URI)
 
     stage = "production"
     model_uri = f"models:/{model_name}/{stage}"
     print(model_uri)
     model = mlflow.pyfunc.load_model(model_uri)
-    # mlflow_artifacts_path = mlflow.get_artifact_uri()
-    # dict_vectorizer_path = mlflow_artifacts_path + "/dict_vectorizer.pkl"
-    # dict_vectorizer = joblib.load(dict_vectorizer_path)
 
-    return model  # , dict_vectorizer
+    return model
 
 
 def predict(model_name, data):
     print(model_name)
     load_dotenv("../.env")
-    MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"  # os.getenv("MLFLOW_TRACKING_URI")
+    MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
     print(MLFLOW_TRACKING_URI)
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     model = load_model(model_name)
     model_input = prepare_features(data)
-    # dict_vectorizer(prepare_features(data))
+
     print(data)
     print(model_input)
     prediction = model.predict(model_input)

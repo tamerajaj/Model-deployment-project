@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import datetime
 
-# import joblib
 import mlflow
 import optuna
 from dotenv import load_dotenv
@@ -35,10 +34,9 @@ def train():
         X, y, random_state=42, test_size=0.2
     )
 
-    # dv = DictVectorizer()
-    X_train = preprocess(X_train)  # , dv, fit_dv=True)
-    X_test = preprocess(X_test)  # , dv, fit_dv=False)
-    # joblib.dump(dv, "dict_vectorizer.pkl")
+    X_train = preprocess(X_train)
+    X_test = preprocess(X_test)
+
     features = ["PULocationID", "DOLocationID", "trip_distance"]
     target = "duration"
 
@@ -135,6 +133,8 @@ def train():
 
 
 def register_model(RUN_ID):
+    # TODO: registering is not working here, you still need to
+    #  do it manually from the MLflow UI.
     model_uri = f"runs:/{RUN_ID}/model"
 
     load_dotenv()
