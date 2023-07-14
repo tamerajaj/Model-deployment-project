@@ -2,14 +2,15 @@ import os
 import sys
 
 import numpy as np
+
+# import optuna
 import pandas as pd
 import skops.io as sio
-
-from sklearn.metrics import precision_recall_fscore_support, mean_squared_error
-from sklearn.preprocessing import Normalizer, StandardScaler
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import Pipeline
-import optuna
+from sklearn.metrics import mean_squared_error, precision_recall_fscore_support
+from sklearn.pipeline import Pipeline  # make_pipeline
+
+# from sklearn.preprocessing import Normalizer, StandardScaler
 
 file_dir = os.path.dirname(__file__)
 sys.path.append(file_dir)
@@ -36,7 +37,6 @@ class RandomForest:
         self.values = y
         self.model = Pipeline(
             [
-
                 ("classifier", RandomForestRegressor()),
             ]
         )
@@ -50,9 +50,8 @@ class RandomForest:
         """Score the model on the test data."""
         y_pred = self.predict(X)
 
-        accuracy = mean_squared_error(y, y_pred)
-        metrics = precision_recall_fscore_support(y, y_pred,
-                                                  average="weighted")
+        # accuracy = mean_squared_error(y, y_pred)
+        metrics = precision_recall_fscore_support(y, y_pred, average="weighted")
         performance = {
             "RMSE": round(mean_squared_error, 2),
             "precision": round(metrics[0], 2),

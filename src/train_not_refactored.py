@@ -8,11 +8,10 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.pipeline import make_pipeline  # ,Pipeline
 
 from helper_functions import get_data
 
-_ = Pipeline
 # get data
 df = get_data()
 load_dotenv()
@@ -23,19 +22,12 @@ MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 # Setup the MLflow experiment
-mlflow.set_experiment("green-taxi-trip-duration")
-
-features = ["PULocationID", "DOLocationID", "trip_distance"]
-target = "duration"
+mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
 
 # calculate the trip duration in minutes and drop trips that are less than 1 minute and more than 2 hours
 def calculate_trip_duration_in_minutes(df):
-    df["trip_duration_minutes"] = (
-        df["lpep_dropoff_datetime"] - df["lpep_pickup_datetime"]
-    ).dt.total_seconds() / 60
-    df = df[(df["trip_duration_minutes"] >= 1) & (df["trip_duration_minutes"] <= 60)]
-    return df
+    pass
 
 
 def preprocess(df):
@@ -49,12 +41,11 @@ def preprocess(df):
 
 
 df_processed = preprocess(df)
-
+#
 y = df_processed["trip_duration_minutes"]
 X = df_processed.drop(columns=["trip_duration_minutes"])
-
-
-dv = DictVectorizer()
+# X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,
+#                                                     test_size=0.2)
 
 
 SA_KEY = os.getenv("GOOGLE_SA_KEY")
@@ -66,14 +57,19 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 X_train = X_train.to_dict(orient="records")
 X_test = X_test.to_dict(orient="records")
-
+features = ["PULocationID", "DOLocationID", "trip_distance"]
+target = "duration"
 with mlflow.start_run():
+    load_dotenv()
+    year = os.getenv("YEAR")
+    month = int(os.getenv("MONTH"))
+    color = os.getenv("COLOR")
     tags = {
         "model": "linear regression pipeline",
         "developer": "<your name>",
-        # "dataset": f"{color}-taxi",
-        # "year": year,
-        # "month": month,
+        "dataset": f"{color}-taxi",
+        "year": year,
+        "month": month,
         "features": features,
         "target": target,
     }
