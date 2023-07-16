@@ -1,42 +1,33 @@
 # Model deployment project
 
-## Project description
 
-In this project you will `train` and `deploy` a `machine learning model` on the `yellow taxi` dataset. The goal is to predict the `duration` of a trip.
-You should use the `scikit-learn` library to train a `random forest regressor` model.
-And deploy the model with one of the methods you saw this week.
+Please do not fork this repository, but use this repository as a template for your refactoring project. Make Pull Requests to your own repository even if you work alone and mark the checkboxes with an x, if you are done with a topic in the pull request message.
 
-## Project structure
-
-The project is composed of 3 parts:
-
-- Train the model with a `random forest regressor` track it with MLFlow.
-- Deploy the model.
-- Make a request to the model.
-
-Bonus tasks if you have the time:
-
-Bonus: Use the testing methods you saw this week to test your data and your model.
-
-Bonus: Use `gridsearch` ot `optuna` to find the best hyperparameters for your model.
-
-## Dataset
-
-Yellow taxi dataset: https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
-
-- Year 2021
-- Month 01
+## Project for today
+The task for today you can find in the [project-description.md](project-description.md) file.
 
 
-## Answer these questions
-
-1. What is the RMSE of your model?
-2. Which deployment method did you use?
-3. What would you do differently if you had more time?
 
 
-## How to submit your project
+## Setup
+### Pipenv
+```bash
+pyenv local 3.10.9
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
 
-Upload your project on GitHub and send us the link. Answer the questions above in the README.md file.
+### Poetry
+```shell
+poetry config virtualenvs.in-project true
+poetry install
+```
 
+
+```shell
+source .venv/bin/activate
+poetry add $( cat requirements.txt ) 	
+```
 
