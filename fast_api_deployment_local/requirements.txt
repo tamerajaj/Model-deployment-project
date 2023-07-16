@@ -6,4 +6,3 @@ python-dotenv
 scikit-learn==1.2.2
 pandas-gbq
 google-cloud-storage
-joblib

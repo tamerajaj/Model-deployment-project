@@ -14,7 +14,7 @@ def index():
 def predict_duration(data: TaxiRide):
     prediction = predict("random-forest-fare-model", data)
     print("Prediction is: " + str(prediction))
-    return TaxiRidePrediction(**data.dict(), predicted_duration=prediction)
+    return TaxiRidePrediction(**data.dict(), predicted_cost=prediction)
 
 
 @app.post("/predict_batch", response_model=list[TaxiRidePrediction])
@@ -22,9 +22,7 @@ def predict_duration_batch(data_batch: list[TaxiRide]):
     predictions = []
     for data in data_batch:
         prediction = predict("random-forest-fare-model", data)
-        predictions.append(
-            TaxiRidePrediction(**data.dict(), predicted_duration=prediction)
-        )
+        predictions.append(TaxiRidePrediction(**data.dict(), predicted_cost=prediction))
 
     return predictions
 
@@ -34,9 +32,7 @@ def predict_duration_bq(data_batch: list[TaxiRide]):
     predictions = []
     for data in data_batch:
         prediction = predict("random-forest-fare-model", data)
-        prediction_full = TaxiRidePrediction(
-            **data.dict(), predicted_duration=prediction
-        )
+        prediction_full = TaxiRidePrediction(**data.dict(), predicted_cost=prediction)
         predictions.append(prediction_full)
     store_in_bq(predictions)
     return predictions
