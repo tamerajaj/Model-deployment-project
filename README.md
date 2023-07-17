@@ -5,8 +5,18 @@ Please do not fork this repository, but use this repository as a template for yo
 
 ## Project for today
 The task for today you can find in the [project-description.md](project-description.md) file.
+# Guide:
+* Train and deploy Random Forest Regressor model on the yellow taxi dataset in: [src](src) folder.
+* Local deployment with FastAPI in: [fast_api_deployment_local](fast_api_deployment_local) folder.
+* Cloud deployment with FastAPI in: [fast_api_deployment_online](fast_api_deployment_online) folder.
+# Questions:
 
+#### 1. RMSE of my model:
+RMSE of my model is 4.364
 
+#### 2. What would I do differently if you had more time?
+* Add more features to the model.
+* Use XGBoost or LightGBM instead of RandomForestRegressor.
 
 
 ## Setup
