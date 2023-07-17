@@ -9,4 +9,4 @@ class TaxiRide(BaseModel):
 
 
 class TaxiRidePrediction(TaxiRide):
-    predicted_cost: float
+    predicted_duration: float
