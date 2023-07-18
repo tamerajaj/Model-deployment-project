@@ -84,6 +84,7 @@ def train():
                 objective=search_space["objective"],
                 random_state=search_space["seed"],
                 verbosity=2,
+                n_jobs=8,
             ),
         )
 
@@ -100,7 +101,7 @@ def train():
 
     # Perform hyperparameter optimization with Optuna
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=10, callbacks=[mlflc])
+    study.optimize(objective, n_trials=10, callbacks=[mlflc], n_jobs=8)
 
     # Get the best trial and parameters
     best_trial = study.best_trial
@@ -120,6 +121,7 @@ def train():
             min_child_weight=best_params["min_child_weight"],
             objective=best_params["objective"],
             random_state=best_params["seed"],
+            n_jobs=8,
         ),
     )
 
