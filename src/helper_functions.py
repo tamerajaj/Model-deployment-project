@@ -30,7 +30,7 @@ def get_data() -> pd.DataFrame:
     return df
 
 
-def calculate_trip_duration_in_minutes(df):
+def calculate_trip_duration_in_minutes(df: pd.DataFrame) -> pd.DataFrame:
     df["trip_duration_minutes"] = (
         df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]
     ).dt.total_seconds() / 60
@@ -38,7 +38,7 @@ def calculate_trip_duration_in_minutes(df):
     return df
 
 
-def preprocess(df: pd.DataFrame):  # , dv: DictVectorizer, fit_dv: bool = False):
+def preprocess(df: pd.DataFrame) -> list[dict]:
     df["PU_DO"] = df["PULocationID"] + "_" + df["DOLocationID"]
     categorical = ["PU_DO"]
     numerical = ["trip_distance"]
